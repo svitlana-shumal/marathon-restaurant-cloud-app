@@ -9,6 +9,8 @@ public interface IOrderService
 {
     Task<Order?> GetOrderByReservationIdAsync(string reservationId);
 
+    Task AddGroupPreOrderAndSubmitAsync(string reservationId, List<OrderItem> dishes);
+
     Task<IEnumerable<Order>> GetOrdersByCustomerIdAsync(string customerId);
 
     Task AddOrderAsync(Order order);

@@ -3,6 +3,7 @@
 .vscode/
 *.iml
 *.code-workspace
+syndicate_venv/
 
 # OS
 .DS_Store

@@ -86,6 +86,34 @@ public class OrderService : IOrderService
         return await _orderRepository.GetOrderByReservationIdAsync(reservationId);
     }
 
+    public async Task AddGroupPreOrderAndSubmitAsync(string reservationId, List<OrderItem> dishes)
+    {
+        var order = await GetOrderByReservationIdAsync(reservationId)
+            ?? throw new ValidationException("Order not found.");
+
+        order.Dishes ??= [];
+        foreach (var incomingDish in dishes)
+        {
+            var existingDish = order.Dishes.FirstOrDefault(item => item.DishId == incomingDish.DishId);
+            if (existingDish is null)
+            {
+                order.Dishes.Add(new OrderItem
+                {
+                    DishId = incomingDish.DishId,
+                    Quantity = incomingDish.Quantity,
+                    State = OrderItemState.Pending
+                });
+            }
+            else
+            {
+                existingDish.Quantity += incomingDish.Quantity;
+            }
+        }
+
+        order.Status = OrderStatus.SubmittedByCustomer;
+        await _orderRepository.SaveOrderAsync(order);
+    }
+
     public async Task AddOrderAsync(Order order)
     {
         var reservation = await LoadReservationAsync(order.ReservationId);

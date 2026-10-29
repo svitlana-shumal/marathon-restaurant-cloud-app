@@ -561,6 +561,7 @@ Response: `200 OK`
   "guestSessionId": "string"
 }
 ```
+Owner only. Returns `404 Not Found` when the reservation or its group reservation does not exist.
 
 
 ### `DELETE` /reservations
@@ -1180,30 +1181,74 @@ Response: 200 OK
 ```
 
 ### `POST` /group-reservations/{groupReservationId}/submit
-Response: 200 OK
+Request:
 ```json
 {
-  "message": "Group reservation pre-order submitted successfully."
+  "reservationId": "string"
 }
 ```
-
-### `GET` /guest/groups/{groupReservationId}/sessions
 Response: 200 OK
 ```json
 [
   {
-    "id": "string",
-    "groupReservationId": "string",
-    "guestName": "string",
-    "status": "string"
+    "dishId": "string",
+    "quantity": 0
   }
 ]
+```
+Owner only. Returns `404 Not Found` when the group reservation or reservation does not exist, and `400 Bad Request` when there are no submitted guest sessions, no dishes, or no order.
+
+### `GET` /guest/groups/{groupReservationId}/sessions
+Response: 200 OK
+```json
+{
+  "participants": [
+    {
+      "id": "string",
+      "type": "Guest",
+      "name": "string",
+      "items": [
+        {
+          "dish": {
+            "id": "string",
+            "name": "string",
+            "price": 0
+          },
+          "quantity": 0
+        }
+      ],
+      "total": 0,
+      "isSubmitted": false
+    }
+  ],
+  "total": 0
+}
 ```
 
 ### `DELETE` /guest/groups/{groupReservationId}/sessions/{guestSessionId}
 Response: 200 OK
 ```json
 {
-  "message": "Guest session removed from group successfully."
+  "participants": [
+    {
+      "id": "string",
+      "type": "Guest",
+      "name": "string",
+      "items": [
+        {
+          "dish": {
+            "id": "string",
+            "name": "string",
+            "price": 0
+          },
+          "quantity": 0
+        }
+      ],
+      "total": 0,
+      "isSubmitted": false
+    }
+  ],
+  "total": 0
 }
 ```
+Owner only. Returns `404 Not Found` when the guest session does not exist, and `400 Bad Request` when it does not belong to the specified group reservation. The response is the updated group snapshot.

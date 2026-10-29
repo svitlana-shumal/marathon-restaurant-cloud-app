@@ -630,4 +630,48 @@ public class OrderServiceTests
         await Assert.ThrowsAsync<ValidationException>(() =>
             _orderService.UnSubmitPreOrderAsync(customerId, reservationId, _mockLambdaContext.Object));
     }
+
+    [Fact]
+    public async Task AddGroupPreOrderAndSubmitAsync_MergesDishesAndSetsSubmittedStatus()
+    {
+        const string reservationId = "reservation-1";
+        var existingOrder = new Order
+        {
+            OrderId = "order-1",
+            CustomerId = "customer-1",
+            ReservationId = reservationId,
+            ReservationAddress = "Address",
+            ReservationTime = "Time",
+            Status = OrderStatus.Created,
+            Dishes = [new OrderItem { DishId = "dish-1", Quantity = 2, State = OrderItemState.Pending }]
+        };
+        var incomingDishes = new List<OrderItem>
+        {
+            new() { DishId = "dish-1", Quantity = 3, State = OrderItemState.Pending },
+            new() { DishId = "dish-2", Quantity = 1, State = OrderItemState.Pending }
+        };
+        _mockOrderRepository
+            .Setup(repository => repository.GetOrderByReservationIdAsync(reservationId))
+            .ReturnsAsync(existingOrder);
+
+        await _orderService.AddGroupPreOrderAndSubmitAsync(reservationId, incomingDishes);
+
+        Assert.Equal(5, existingOrder.Dishes.Single(item => item.DishId == "dish-1").Quantity);
+        Assert.Equal(1, existingOrder.Dishes.Single(item => item.DishId == "dish-2").Quantity);
+        Assert.Equal(OrderStatus.SubmittedByCustomer, existingOrder.Status);
+        _mockOrderRepository.Verify(repository => repository.SaveOrderAsync(existingOrder), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddGroupPreOrderAndSubmitAsync_WhenOrderNotFound_ThrowsValidationException()
+    {
+        _mockOrderRepository
+            .Setup(repository => repository.GetOrderByReservationIdAsync("reservation-1"))
+            .ReturnsAsync((Order?)null);
+
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _orderService.AddGroupPreOrderAndSubmitAsync(
+                "reservation-1",
+                [new OrderItem { DishId = "dish-1", Quantity = 1, State = OrderItemState.Pending }]));
+    }
 }
